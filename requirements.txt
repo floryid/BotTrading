@@ -1,0 +1,9 @@
+ccxt>=4.3
+pandas>=2.0
+numpy>=1.26
+requests>=2.31
+flask>=3.0
+python-dotenv>=1.0
+torch>=2.2
+websocket-client>=1.7
+pytest>=8.0

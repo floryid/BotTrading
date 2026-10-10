@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f1a">
+<title>AI Hedge Fund v2.0</title>
+<style>
+:root{--bg:#0b0f1a;--panel:rgba(255,255,255,.04);--line:rgba(255,255,255,.08);--txt:#e8ecf4;--mut:#8b94a8;
+--up:#22d39a;--down:#ff5d73;--acc:#7c8cff;--warn:#ffb84d;--r:16px}
+*{box-sizing:border-box;margin:0}
+body{background:radial-gradient(900px 500px at 10% -10%,#1b2250 0,transparent 60%),radial-gradient(800px 500px at 100% 0,#2a1747 0,transparent 55%),var(--bg);
+color:var(--txt);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;padding:env(safe-area-inset-top) 0 40px}
+.wrap{max-width:1200px;margin:0 auto;padding:16px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.logo{font-weight:800;font-size:20px;letter-spacing:.3px}
+.logo b{background:linear-gradient(90deg,var(--acc),var(--up));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sp{flex:1}
+.pill{padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--panel);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.pill.paper{color:var(--warn)}.pill.live{color:var(--down);border-color:rgba(255,93,115,.5)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--down)}.dot.on{background:var(--up);box-shadow:0 0 8px var(--up)}
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:14px}
+.two{grid-template-columns:2fr 1fr}.three{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;backdrop-filter:blur(10px);min-width:0}
+.card h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:10px;font-weight:600}
+.kpi .v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}.kpi .s{color:var(--mut);font-size:12px;margin-top:2px}
+.up{color:var(--up)}.down{color:var(--down)}.mut{color:var(--mut)}
+.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:10px}
+.bar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--up),var(--warn),var(--down));transition:width .6s}
+.ticks{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tick{padding:12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);transition:background .5s}
+.tick.fu{background:rgba(34,211,154,.18)}.tick.fd{background:rgba(255,93,115,.18)}
+.tick .n{font-weight:700}.tick .p{font-size:18px;font-variant-numeric:tabular-nums;margin-top:2px}
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;background:rgba(124,140,255,.15);color:var(--acc);white-space:nowrap}
+.badge.up{background:rgba(34,211,154,.15)}.badge.down{background:rgba(255,93,115,.15)}.badge.warn{background:rgba(255,184,77,.15);color:var(--warn)}
+.tbl{overflow-x:auto}table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{font-size:11px;text-transform:uppercase;color:var(--mut);text-align:left;font-weight:600;padding:6px 8px;white-space:nowrap}
+td{padding:8px;border-top:1px solid var(--line);white-space:nowrap}
+.empty{color:var(--mut);padding:14px 0;text-align:center}
+.row{display:flex;align-items:center;gap:10px;margin:8px 0}.row .l{width:110px;color:var(--mut);font-size:12px}
+.row .b{flex:1;height:8px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;position:relative}
+.row .b i{position:absolute;top:0;bottom:0;border-radius:99px;background:var(--acc)}
+.row .x{width:52px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums}
+.ev{max-height:260px;overflow:auto;font-size:13px}.ev div{padding:6px 0;border-top:1px solid var(--line)}.ev div:first-child{border:0}
+.chead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.seg{display:inline-flex;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:2px;gap:2px;flex-wrap:wrap}
+.seg button{background:none;border:0;color:var(--mut);font:600 12px system-ui,sans-serif;padding:5px 10px;border-radius:8px;cursor:pointer}
+.seg button:hover{color:var(--txt)}.seg button.on{background:rgba(124,140,255,.22);color:#fff}
+.legend{font-size:12.5px;font-variant-numeric:tabular-nums;margin-bottom:6px;min-height:18px;line-height:1.6}
+.chartbox{width:100%;position:relative}
+.tab{display:none}.tab.on{display:block}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px;scrollbar-width:none}
+.tabs button{background:var(--panel);border:1px solid var(--line);color:var(--mut);font:600 13px system-ui,sans-serif;padding:9px 14px;border-radius:12px;cursor:pointer;white-space:nowrap}
+.tabs button:hover{color:var(--txt)}.tabs button.on{background:rgba(124,140,255,.2);border-color:rgba(124,140,255,.5);color:#fff}
+.cnt{font-size:11px;background:rgba(255,255,255,.1);border-radius:99px;padding:1px 7px;margin-left:4px}.cnt:empty{display:none}
+.inp{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:7px 10px;font:inherit;font-size:13px;min-width:0;outline:none}
+.inp:focus{border-color:var(--acc)}.inp.bad{border-color:var(--down)}.inp option{background:#141a2e}
+.btn{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:7px 12px;font:600 12px system-ui,sans-serif;cursor:pointer}
+.btn:hover{background:rgba(124,140,255,.2)}.btn.sm{padding:3px 9px;font-size:11px}
+.filters{display:flex;flex-wrap:wrap;gap:8px}.filters .inp{flex:1 1 150px}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.presets button{background:rgba(124,140,255,.1);border:1px solid rgba(124,140,255,.3);color:var(--txt);border-radius:99px;padding:5px 12px;font:600 12px system-ui,sans-serif;cursor:pointer}
+.presets button:hover{background:rgba(124,140,255,.3)}
+.movers{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.mv>div{display:flex;justify-content:space-between;gap:8px;padding:6px 4px;border-top:1px solid var(--line);cursor:pointer;border-radius:6px}
+.mv>div:first-child{border:0}.mv>div:hover{background:rgba(255,255,255,.05)}
+.fng-v{font-size:38px;font-weight:800;line-height:1.1}
+.fng-bar{position:relative;height:8px;border-radius:99px;margin:12px 0 6px;background:linear-gradient(90deg,#ff5d73,#ff9d5c,#ffb84d,#9be15d,#22d39a)}
+.fng-bar i{position:absolute;top:-4px;width:4px;height:16px;border-radius:2px;background:#fff;transform:translateX(-50%);box-shadow:0 0 6px rgba(0,0,0,.6)}
+.heat{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:5px}
+.tile{border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;display:flex;flex-direction:column;gap:2px;border:1px solid rgba(255,255,255,.06);transition:transform .15s}
+.tile:hover{transform:scale(1.06);position:relative;z-index:1}.tile b{font-size:13px}.tile span{font-size:12px;font-variant-numeric:tabular-nums}
+tr.clk{cursor:pointer}tr.clk:hover td{background:rgba(255,255,255,.04)}
+th.sortable span{cursor:pointer;user-select:none}th.sortable span:hover{color:var(--txt)}
+.star{background:none;border:0;color:var(--mut);font-size:16px;cursor:pointer;padding:0 4px}.star.on{color:var(--warn)}
+.spark{width:72px;height:22px;display:block}
+.rng{display:block;position:relative;width:70px;height:6px;border-radius:99px;background:linear-gradient(90deg,rgba(255,93,115,.35),rgba(34,211,154,.35))}
+.rng i{position:absolute;top:-2px;width:3px;height:10px;border-radius:2px;background:#fff;transform:translateX(-50%)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.stat{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:10px;font-size:12px}.stat b{font-size:16px}
+#symsearch{width:130px;flex:0 0 auto}
+@media(max-width:820px){#candle{height:340px!important}}
+.banner{display:none;background:rgba(255,93,115,.15);border:1px solid var(--down);color:var(--down);padding:10px 14px;border-radius:12px;margin-bottom:14px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🧠 AI HEDGE FUND <b>v2.0</b></div>
+    <span id="mode" class="pill paper">PAPER</span>
+    <span class="pill"><span id="wsdot" class="dot"></span><span id="wstxt">WS</span></span>
+    <div class="sp"></div>
+    <span class="pill" id="lev">5x</span>
+    <span class="pill" id="uptime">–</span>
+    <span class="pill" id="next">slow loop –</span>
+  </header>
+  <div id="halt" class="banner">🛑 SYSTEM STOP — circuit breaker aktif</div>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="overview" class="on">📊 Ringkasan</button>
+    <button data-tab="market">🌐 Market <span class="cnt" id="cnt-market"></span></button>
+    <button data-tab="ai">🧠 Analisis AI</button>
+    <button data-tab="history">📜 Riwayat & Performa</button>
+  </nav>
+
+<div class="tab on" id="tab-overview">
+  <section class="grid kpis">
+    <div class="card kpi"><h3>Equity</h3><div class="v" id="equity">–</div><div class="s" id="balance">–</div></div>
+    <div class="card kpi"><h3>Total PnL</h3><div class="v" id="pnl">–</div><div class="s" id="trades">–</div></div>
+    <div class="card kpi"><h3>Drawdown</h3><div class="v" id="dd">–</div><div class="s">limit <span id="ddmax">20</span>%</div><div class="bar"><i id="ddbar" style="width:0"></i></div></div>
+    <div class="card kpi"><h3>Total Risk</h3><div class="v" id="risk">–</div><div class="s">limit <span id="riskmax">5</span>%</div><div class="bar"><i id="riskbar" style="width:0"></i></div></div>
+    <div class="card kpi"><h3>Win Rate / PF</h3><div class="v" id="wr">–</div><div class="s" id="pf">–</div></div>
+  </section>
+
+  <section class="card" style="margin-bottom:14px"><h3>Harga real-time (WebSocket)</h3><div class="ticks" id="ticks"></div></section>
+
+  <section class="card" style="margin-bottom:14px">
+    <div class="chead">
+      <h3 style="margin:0">Grafik candlestick</h3>
+      <div class="seg" id="symtabs"></div>
+      <input id="symsearch" class="inp" list="symlist" placeholder="🔍 Cari koin…" autocomplete="off"><datalist id="symlist"></datalist>
+      <div class="seg" id="tftabs"></div>
+      <div class="seg"><button data-opt="ema" class="on">EMA 20/50</button><button data-opt="vol" class="on">Volume</button></div>
+    </div>
+    <div class="legend" id="mklegend">Memuat…</div>
+    <div id="candle" class="chartbox" style="height:440px"></div>
+  </section>
+
+  <section class="grid two" style="margin-bottom:14px">
+    <div class="card"><div class="chead"><h3 style="margin:0">Equity curve</h3><span class="legend" id="eqlegend" style="margin:0 0 0 auto"></span></div><div id="eqchart" class="chartbox" style="height:230px"></div></div>
+    <div class="card"><h3>Strategi & RL</h3><div id="weights"></div><div id="rl" class="mut" style="margin-top:12px;font-size:13px"></div></div>
+  </section>
+
+  <section class="card" style="margin-bottom:14px"><h3>Posisi aktif</h3><div class="tbl" id="positions"></div></section>
+</div>
+
+<div class="tab" id="tab-market">
+  <section class="grid movers" style="margin-bottom:14px">
+    <div class="card"><h3>Fear & Greed</h3><div id="fng"></div></div>
+    <div class="card"><h3>🚀 Top gainers 24h</h3><div class="mv" id="mv-gain"></div></div>
+    <div class="card"><h3>📉 Top losers 24h</h3><div class="mv" id="mv-lose"></div></div>
+    <div class="card"><h3>💰 Volume terbesar</h3><div class="mv" id="mv-vol"></div></div>
+    <div class="card"><h3>⚡ Funding ekstrem</h3><div class="mv" id="mv-fund"></div></div>
+  </section>
+
+  <section class="card" style="margin-bottom:14px">
+    <div class="chead"><h3 style="margin:0">Filter & pencarian</h3><span class="mut" id="scount" style="margin-left:auto;font-size:12px"></span></div>
+    <div class="filters">
+      <input id="f-q" class="inp" placeholder="🔍 Cari koin (BTC, SOL…)">
+      <select id="f-signal" class="inp"><option value="">Sinyal: semua</option><option>BULLISH</option><option>BEARISH</option><option>OVERBOUGHT</option><option>OVERSOLD</option><option>NEUTRAL</option></select>
+      <select id="f-trend" class="inp"><option value="">Trend 1H: semua</option><option value="UP">Naik (EMA20 &gt; EMA50)</option><option value="DOWN">Turun (EMA20 &lt; EMA50)</option></select>
+      <select id="f-chg" class="inp"><option value="">Perubahan 24h: semua</option><option value="up">Naik</option><option value="down">Turun</option><option value="up5">Naik ≥ 5%</option><option value="down5">Turun ≤ −5%</option><option value="move10">Bergerak ≥ 10%</option></select>
+      <select id="f-vol" class="inp"><option value="0">Volume: semua</option><option value="1000000">≥ $1 jt</option><option value="10000000">≥ $10 jt</option><option value="50000000">≥ $50 jt</option><option value="100000000">≥ $100 jt</option><option value="500000000">≥ $500 jt</option></select>
+      <select id="f-rsi" class="inp"><option value="">RSI: semua</option><option value="lt30">&lt; 30 (oversold)</option><option value="30-45">30 – 45</option><option value="45-65">45 – 65 (zona ideal)</option><option value="65-70">65 – 70</option><option value="gt70">&gt; 70 (overbought)</option></select>
+      <select id="f-fund" class="inp"><option value="">Funding: semua</option><option value="pos">Positif (long bayar)</option><option value="neg">Negatif (short bayar)</option><option value="hi">|funding| ≥ 0.03%</option></select>
+      <select id="f-vr" class="inp"><option value="0">Lonjakan volume: semua</option><option value="1.3">≥ 1.3x</option><option value="2">≥ 2x</option><option value="3">≥ 3x</option></select>
+      <div class="seg"><button id="f-fav" data-ftoggle="fav">⭐ Favorit</button><button id="f-bot" data-ftoggle="bot">🤖 Dipantau bot</button></div>
+      <button id="f-reset" class="btn">Reset</button>
+    </div>
+    <div class="presets" id="presets">
+      <button data-preset="breakout">🔥 Breakout (vol ≥2x, naik)</button>
+      <button data-preset="oversold">🟢 Oversold</button>
+      <button data-preset="overbought">🔴 Overbought</button>
+      <button data-preset="trendup">📈 Trend naik kuat</button>
+      <button data-preset="liquid">💧 Likuid (≥$100 jt)</button>
+      <button data-preset="profit">🎯 Peluang profit AI</button>
+    </div>
+  </section>
+
+  <section class="card" style="margin-bottom:14px"><h3>Top peluang profit (AI scanner)</h3><div id="profit-picks" class="mut">Menunggu analisis…</div></section>
+  <section class="card" style="margin-bottom:14px"><div class="chead"><h3 style="margin:0">Heatmap perubahan 24h</h3><span class="mut" style="font-size:12px">klik untuk membuka grafik</span></div><div id="heat" class="heat"></div></section>
+  <section class="card" style="margin-bottom:14px"><h3>Scanner pasar (Bybit USDT perpetual)</h3><div class="tbl" id="scanner"></div><div style="text-align:center;margin-top:10px"><button id="more" class="btn" style="display:none">Tampilkan lebih banyak</button></div></section>
+</div>
+
+<div class="tab" id="tab-ai">
+  <section class="card" style="margin-bottom:14px"><h3>Analisis AI per simbol</h3><div class="tbl" id="analysis"></div></section>
+
+  <section class="grid two" style="margin-bottom:14px">
+    <div class="card"><h3>Smart money</h3><div id="sm"></div></div>
+    <div class="card"><h3>Backtest (1H EMA+RSI)</h3><div class="tbl" id="bt"></div></div>
+  </section>
+</div>
+
+<div class="tab" id="tab-history">
+  <section class="grid two" style="margin-bottom:14px">
+    <div class="card"><h3>Performa per simbol</h3><div id="perf"></div></div>
+    <div class="card"><h3>Statistik trade</h3><div id="tstats"></div></div>
+  </section>
+  <section class="card" style="margin-bottom:14px"><h3>Aktivitas</h3><div class="ev" id="events"></div></section>
+  <section class="card">
+    <div class="chead"><h3 style="margin:0">Riwayat trade</h3>
+      <select id="h-sym" class="inp"></select>
+      <select id="h-res" class="inp"><option value="">Hasil: semua</option><option value="win">Profit</option><option value="loss">Loss</option></select>
+      <select id="h-rsn" class="inp"><option value="">Alasan: semua</option><option>TP</option><option>SL</option><option>CIRCUIT BREAKER</option><option>EXCHANGE</option></select>
+      <button id="h-csv" class="btn" style="margin-left:auto">⬇ CSV</button></div>
+    <div class="tbl" id="history"></div>
+  </section>
+</div>
+</div>
+<script src="/vendor/lightweight-charts.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = (v, d = 2) => v == null ? "–" : Number(v).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+const px = v => v == null ? "–" : Number(v).toLocaleString("en-US", {maximumFractionDigits: v < 1 ? 5 : v < 100 ? 3 : 2});
+const sign = v => v > 0 ? "up" : v < 0 ? "down" : "mut";
+const ago = ts => { const s = Math.max(0, Date.now() / 1000 - ts); return s < 90 ? Math.round(s) + "s" : s < 5400 ? Math.round(s / 60) + "m" : Math.round(s / 3600) + "h"; };
+const dur = s => { const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? h + "j " + m + "m" : m + "m"; };
+const table = (heads, rows) => rows.length
+  ? `<table><thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>` : `<div class="empty">Belum ada data</div>`;
+const getJSON = u => fetch(u, {credentials: "same-origin"}).then(r => r.ok ? r.json() : Promise.reject(r.status));
+let D = null, lastPrices = {};
+
+const TZ = -new Date().getTimezoneOffset() * 60;   // charts render UTC, so shift to local time
+const C = {up: "#22d39a", down: "#ff5d73", acc: "#7c8cff", mut: "#8b94a8", warn: "#ffb84d"};
+const baseOpts = () => ({
+  autoSize: true,
+  layout: {background: {type: "solid", color: "transparent"}, textColor: C.mut, fontFamily: "system-ui,-apple-system,Segoe UI,sans-serif", fontSize: 11},
+  grid: {vertLines: {color: "rgba(255,255,255,.035)"}, horzLines: {color: "rgba(255,255,255,.035)"}},
+  crosshair: {mode: LightweightCharts.CrosshairMode.Normal, vertLine: {color: "rgba(255,255,255,.25)", labelBackgroundColor: "#2a3050"}, horzLine: {color: "rgba(255,255,255,.25)", labelBackgroundColor: "#2a3050"}},
+  rightPriceScale: {borderColor: "rgba(255,255,255,.08)"},
+  timeScale: {borderColor: "rgba(255,255,255,.08)", timeVisible: true, secondsVisible: false, rightOffset: 6},
+});
+const fmtTime = t => new Date((t - TZ) * 1000).toLocaleString("id-ID", {day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"});
+
+/* ---------- Equity curve ---------- */
+let eq = null;
+function initEquity() {
+  const chart = LightweightCharts.createChart($("eqchart"), {...baseOpts(), handleScale: {mouseWheel: false}});
+  const area = chart.addBaselineSeries({baseValue: {type: "price", price: 0}, lineWidth: 2, priceLineVisible: true,
+    topLineColor: C.up, topFillColor1: "rgba(34,211,154,.35)", topFillColor2: "rgba(34,211,154,.02)",
+    bottomLineColor: C.down, bottomFillColor1: "rgba(255,93,115,.02)", bottomFillColor2: "rgba(255,93,115,.35)"});
+  const peak = chart.addLineSeries({color: "rgba(255,184,77,.7)", lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false});
+  eq = {chart, area, peak, fitted: false, data: []};
+  chart.subscribeCrosshairMove(p => {
+    const e = p.time && p.seriesData.get(area);
+    $("eqlegend").innerHTML = e ? `<span class="mut">${fmtTime(p.time)}</span> <b>$${num(e.value)}</b>` : eqSummary();
+  });
+}
+function eqSummary() {
+  const d = eq.data; if (!d.length) return "";
+  const start = d[0].value, last = d[d.length - 1].value, chg = last - start;
+  let pk = start, mdd = 0;
+  d.forEach(p => { pk = Math.max(pk, p.value); mdd = Math.max(mdd, (pk - p.value) / pk); });
+  return `<b>$${num(last)}</b> <span class="${sign(chg)}">${chg >= 0 ? "+" : ""}${num(chg)} (${num(chg / start * 100)}%)</span> <span class="mut">• Max DD ${num(mdd * 100)}%</span>`;
+}
+function renderEquity(points) {
+  if (!eq || !points || !points.length) return;
+  const seen = new Set(), data = [];
+  points.slice().sort((a, b) => a[0] - b[0]).forEach(([t, v]) => { const x = t + TZ; if (!seen.has(x)) { seen.add(x); data.push({time: x, value: v}); } });
+  let pk = -Infinity; const peaks = data.map(p => ({time: p.time, value: (pk = Math.max(pk, p.value))}));
+  eq.data = data;
+  eq.area.applyOptions({baseValue: {type: "price", price: data[0].value}});
+  eq.area.setData(data); eq.peak.setData(peaks);
+  if (!eq.fitted && data.length > 1) { eq.chart.timeScale().fitContent(); eq.fitted = true; }
+  $("eqlegend").innerHTML = eqSummary();
+}
+
+/* ---------- Candlestick chart ---------- */
+let mk = null, mkSymbol = null, mkTf = "15m", mkBusy = false, mkReq = 0;
+const mkState = {candles: [], step: 900, lines: [], opts: {ema: true, vol: true}};
+function initMarket() {
+  const chart = LightweightCharts.createChart($("candle"), baseOpts());
+  const candles = chart.addCandlestickSeries({upColor: C.up, downColor: C.down, borderVisible: false, wickUpColor: C.up, wickDownColor: C.down, priceLineColor: C.acc});
+  candles.priceScale().applyOptions({scaleMargins: {top: .06, bottom: .24}});
+  const ema20 = chart.addLineSeries({color: "#5ab0ff", lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false});
+  const ema50 = chart.addLineSeries({color: C.warn, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false});
+  const vol = chart.addHistogramSeries({priceFormat: {type: "volume"}, priceScaleId: "vol", priceLineVisible: false, lastValueVisible: false});
+  chart.priceScale("vol").applyOptions({scaleMargins: {top: .8, bottom: 0}});
+  mk = {chart, candles, ema20, ema50, vol};
+  chart.subscribeCrosshairMove(p => {
+    const c = p.time && p.seriesData.get(candles);
+    if (c) { const v = p.seriesData.get(vol); legend(c, v ? v.value : null, p.seriesData.get(ema20), p.seriesData.get(ema50)); }
+    else legendLast();
+  });
+}
+function legend(c, v, e20, e50) {
+  const chg = (c.close - c.open) / c.open * 100, cls = c.close >= c.open ? "up" : "down";
+  $("mklegend").innerHTML = `<b>${esc(mkSymbol)}</b> <span class="mut">${mkTf}</span> &nbsp;<span class="mut">O</span> <span class="${cls}">${px(c.open)}</span> <span class="mut">H</span> <span class="${cls}">${px(c.high)}</span> <span class="mut">L</span> <span class="${cls}">${px(c.low)}</span> <span class="mut">C</span> <span class="${cls}">${px(c.close)}</span> <span class="${cls}">${chg >= 0 ? "+" : ""}${num(chg)}%</span>`
+    + (v != null ? ` <span class="mut">Vol</span> ${Number(v).toLocaleString("en-US", {maximumFractionDigits: 0})}` : "")
+    + (e20 && mkState.opts.ema ? ` <span style="color:#5ab0ff">EMA20 ${px(e20.value)}</span>` : "") + (e50 && mkState.opts.ema ? ` <span style="color:${C.warn}">EMA50 ${px(e50.value)}</span>` : "");
+}
+function legendLast() {
+  const l = mkState.candles[mkState.candles.length - 1]; if (!l) return;
+  legend({open: l.o, high: l.h, low: l.l, close: l.c}, l.v, l.e20 != null ? {value: l.e20} : null, l.e50 != null ? {value: l.e50} : null);
+}
+const toC = c => ({time: c.t + TZ, open: c.o, high: c.h, low: c.l, close: c.c});
+const toV = c => ({time: c.t + TZ, value: c.v, color: c.c >= c.o ? "rgba(34,211,154,.35)" : "rgba(255,93,115,.35)"});
+const toE = (c, k) => c[k] == null ? null : {time: c.t + TZ, value: c[k]};
+function applyOverlays(res) {
+  mkState.lines.forEach(l => mk.candles.removePriceLine(l)); mkState.lines = [];
+  const line = (price, color, title, style) => mkState.lines.push(mk.candles.createPriceLine({price, color, lineWidth: 1, lineStyle: style, axisLabelVisible: true, title}));
+  (res.positions || []).forEach(p => { line(p.entry, C.acc, `${p.side} entry`, 0); line(p.sl, C.down, "SL", 2); line(p.tp, C.up, "TP", 2); });
+  const first = res.candles[0].t, step = res.step, snap = t => Math.floor(t / step) * step + TZ, marks = [];
+  (res.positions || []).forEach(p => { if (p.opened_at >= first) marks.push({time: snap(p.opened_at), position: p.side === "LONG" ? "belowBar" : "aboveBar", color: C.acc, shape: p.side === "LONG" ? "arrowUp" : "arrowDown", text: p.side}); });
+  (res.trades || []).forEach(t => { if (t.closed_at >= first) marks.push({time: snap(t.closed_at), position: "aboveBar", color: t.pnl >= 0 ? C.up : C.down, shape: "circle", text: `${t.reason} ${t.pnl >= 0 ? "+" : ""}${num(t.pnl)}`}); });
+  mk.candles.setMarkers(marks.sort((a, b) => a.time - b.time));
+}
+function applyVisibility() {
+  mk.ema20.applyOptions({visible: mkState.opts.ema}); mk.ema50.applyOptions({visible: mkState.opts.ema});
+  mk.vol.applyOptions({visible: mkState.opts.vol});
+}
+async function loadMarket(full) {
+  if (!mk || !mkSymbol || (!full && mkBusy)) return;
+  mkBusy = true;
+  const my = ++mkReq, sym = mkSymbol, tf = mkTf;
+  try {
+    const res = await getJSON(`/candles?symbol=${encodeURIComponent(sym)}&tf=${tf}`);
+    if (my !== mkReq) return;
+    mkState.candles = res.candles; mkState.step = res.step;
+    const cs = res.candles;
+    if (full) {
+      mk.candles.setData(cs.map(toC)); mk.vol.setData(cs.map(toV));
+      mk.ema20.setData(cs.map(c => toE(c, "e20")).filter(Boolean)); mk.ema50.setData(cs.map(c => toE(c, "e50")).filter(Boolean));
+      mk.chart.timeScale().setVisibleLogicalRange({from: Math.max(0, cs.length - 110), to: cs.length + 6});
+    } else {
+      cs.slice(-3).forEach(c => { try { mk.candles.update(toC(c)); mk.vol.update(toV(c)); [["ema20", "e20"], ["ema50", "e50"]].forEach(([s, k]) => { const e = toE(c, k); if (e) mk[s].update(e); }); } catch (_) {} });
+    }
+    applyOverlays(res); applyVisibility(); legendLast();
+  } catch (e) { if (full && my === mkReq) $("mklegend").innerHTML = `<span class="mut">Data chart ${esc(sym)} belum tersedia…</span>`; }
+  finally { if (my === mkReq) mkBusy = false; }
+}
+function liveTick(price) {
+  const cs = mkState.candles, last = cs[cs.length - 1];
+  if (!mk || !last || price == null) return;
+  const bucket = Math.floor(Date.now() / 1000 / mkState.step) * mkState.step;
+  let c;
+  if (bucket > last.t) { c = {t: bucket, o: last.c, h: Math.max(last.c, price), l: Math.min(last.c, price), c: price, v: 0, e20: last.e20, e50: last.e50}; cs.push(c); }
+  else { last.h = Math.max(last.h, price); last.l = Math.min(last.l, price); last.c = price; c = last; }
+  mk.candles.update(toC(c)); mk.vol.update(toV(c));
+}
+/* ---------- Storage, favorites, tabs ---------- */
+const store = {
+  get: (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+let favs = new Set(store.get("favs", []));
+const chartSymbols = () => {
+  const base = (D && D.symbols) || [], list = [...base, ...[...favs].filter(s => !base.includes(s))];
+  if (mkSymbol && !list.includes(mkSymbol)) list.push(mkSymbol);
+  return list;
+};
+function buildMarketTabs() {
+  $("symtabs").innerHTML = chartSymbols().map(s => `<button data-sym="${esc(s)}" class="${s === mkSymbol ? "on" : ""}">${esc(s.replace("/USDT", ""))}</button>`).join("");
+  $("tftabs").innerHTML = ["1m", "5m", "15m", "1h", "4h"].map(t => `<button data-tf="${t}" class="${t === mkTf ? "on" : ""}">${t}</button>`).join("");
+}
+function selectSymbol(s, jump) {
+  if (!mk) return;
+  mkSymbol = s; buildMarketTabs(); loadMarket(true);
+  if (jump) { showTab("overview"); setTimeout(() => $("candle").scrollIntoView({behavior: "smooth", block: "center"}), 60); }
+}
+function toggleFav(s) {
+  favs.has(s) ? favs.delete(s) : favs.add(s);
+  store.set("favs", [...favs]); buildMarketTabs(); renderScanner();
+}
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.id === "tab-" + name));
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
+  store.set("tab", name);
+  if (name === "market") renderScanner();
+}
+
+/* ---------- Market scanner ---------- */
+const FDEF = {q: "", signal: "", trend: "", chg: "", vol: "0", rsi: "", fund: "", vr: "0", fav: false, bot: false, hotProfit: false};
+const FIELDS = {q: "f-q", signal: "f-signal", trend: "f-trend", chg: "f-chg", vol: "f-vol", rsi: "f-rsi", fund: "f-fund", vr: "f-vr"};
+const F = {...FDEF, ...store.get("filters", {})};
+const PRESETS = {
+  breakout: {vr: "2", chg: "up", vol: "10000000"}, oversold: {rsi: "lt30"}, overbought: {rsi: "gt70"},
+  trendup: {trend: "UP", signal: "BULLISH", vol: "10000000"}, liquid: {vol: "100000000"},
+  profit: {hotProfit: true, vol: "10000000"},
+};
+let SC = null, scLimit = 50, sortKey = "turnover", sortDir = -1;
+const usd = v => v == null ? "–" : v >= 1e9 ? (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "K" : v.toFixed(0);
+const pct = (v, d = 2) => v == null ? "–" : (v >= 0 ? "+" : "") + num(v, d) + "%";
+
+function syncFilterUI() {
+  for (const [k, id] of Object.entries(FIELDS)) $(id).value = F[k];
+  $("f-fav").classList.toggle("on", F.fav); $("f-bot").classList.toggle("on", F.bot);
+}
+function filtersChanged() { store.set("filters", F); scLimit = 50; renderScanner(); }
+function bindFilters() {
+  for (const [k, id] of Object.entries(FIELDS)) {
+    const el = $(id);
+    el.addEventListener(k === "q" ? "input" : "change", () => { F[k] = el.value; filtersChanged(); });
+  }
+  syncFilterUI();
+}
+function passes(r) {
+  const q = F.q.trim().toUpperCase();
+  if (q && !r.symbol.includes(q)) return false;
+  if (F.signal && r.signal !== F.signal) return false;
+  if (F.trend && r.trend !== F.trend) return false;
+  const c = r.chg24;
+  if (F.chg === "up" && !(c > 0)) return false;
+  if (F.chg === "down" && !(c < 0)) return false;
+  if (F.chg === "up5" && !(c >= 5)) return false;
+  if (F.chg === "down5" && !(c <= -5)) return false;
+  if (F.chg === "move10" && !(Math.abs(c) >= 10)) return false;
+  if (r.turnover < +F.vol) return false;
+  if (F.rsi) {
+    const v = r.rsi; if (v == null) return false;
+    if (F.rsi === "lt30" && !(v < 30)) return false;
+    if (F.rsi === "30-45" && !(v >= 30 && v < 45)) return false;
+    if (F.rsi === "45-65" && !(v >= 45 && v < 65)) return false;
+    if (F.rsi === "65-70" && !(v >= 65 && v <= 70)) return false;
+    if (F.rsi === "gt70" && !(v > 70)) return false;
+  }
+  if (F.fund === "pos" && !(r.funding > 0)) return false;
+  if (F.fund === "neg" && !(r.funding < 0)) return false;
+  if (F.fund === "hi" && !(Math.abs(r.funding) >= 0.03)) return false;
+  if (+F.vr > 0 && !(r.vol_ratio != null && r.vol_ratio >= +F.vr)) return false;
+  if (F.fav && !favs.has(r.symbol)) return false;
+  if (F.bot && !r.in_bot) return false;
+  if (F.hotProfit && !(r.profit_edge && r.profit_edge.hot)) return false;
+  return true;
+}
+function renderProfitPicks() {
+  const box = $("profit-picks");
+  if (!SC || !box) return;
+  const picks = SC.profit_picks || [];
+  box.innerHTML = picks.length ? picks.map(p =>
+    `<div class="row clk" data-open="${esc(p.symbol)}" style="cursor:pointer;margin:4px 0">
+      <span class="l" style="width:72px"><b>${esc(p.symbol.replace("/USDT", ""))}</b></span>
+      <span class="badge ${p.side === "LONG" ? "up" : "down"}">${esc(p.side)}</span>
+      <span class="mut">Edge ${p.edge} • Grade ${esc(p.grade)} • WR~${p.win_prob}% • E[R] ${num(p.expected_r)}</span>
+    </div>`).join("") : `<div class="empty">Belum ada setup dengan edge AI ≥ threshold</div>`;
+}
+const sigCls = s => s === "BULLISH" ? "up" : s === "BEARISH" ? "down" : (s === "OVERBOUGHT" || s === "OVERSOLD") ? "warn" : "";
+function spark(vals) {
+  if (!vals || vals.length < 2) return "";
+  const pts = vals.map((v, i) => `${(i / (vals.length - 1) * 70 + 1).toFixed(1)},${(21 - v / 100 * 19).toFixed(1)}`).join(" ");
+  return `<svg class="spark" viewBox="0 0 72 22"><polyline points="${pts}" fill="none" stroke="${vals[vals.length - 1] >= vals[0] ? C.up : C.down}" stroke-width="1.5"/></svg>`;
+}
+function movers(el, rows, valFn, clsFn) {
+  $(el).innerHTML = rows.length ? rows.map(r => `<div data-open="${esc(r.symbol)}"><span><b>${esc(r.base)}</b> <span class="mut">${px(r.price)}</span></span><span class="${clsFn(r)}">${valFn(r)}</span></div>`).join("") : `<div class="empty">–</div>`;
+}
+function renderMovers(rows) {
+  const liquid = rows.filter(r => r.turnover >= 5e6);
+  movers("mv-gain", [...liquid].sort((a, b) => b.chg24 - a.chg24).slice(0, 5), r => pct(r.chg24), () => "up");
+  movers("mv-lose", [...liquid].sort((a, b) => a.chg24 - b.chg24).slice(0, 5), r => pct(r.chg24), () => "down");
+  movers("mv-vol", [...rows].sort((a, b) => b.turnover - a.turnover).slice(0, 5), r => "$" + usd(r.turnover), () => "");
+  movers("mv-fund", [...liquid].sort((a, b) => Math.abs(b.funding) - Math.abs(a.funding)).slice(0, 5), r => pct(r.funding, 4), r => r.funding > 0 ? "up" : "down");
+  const f = SC.fng;
+  $("fng").innerHTML = f ? `<div class="fng-v" style="color:${fngColor(f.value)}">${f.value}</div><div style="font-weight:600">${esc(f.label)}</div>
+    <div class="fng-bar"><i style="left:${f.value}%"></i></div><div class="mut" style="font-size:11px;display:flex;justify-content:space-between"><span>Extreme fear</span><span>Extreme greed</span></div>` : `<div class="empty">Tidak tersedia</div>`;
+}
+const fngColor = v => v < 25 ? C.down : v < 45 ? "#ff9d5c" : v < 56 ? C.warn : v < 75 ? "#9be15d" : C.up;
+function renderHeat(rows) {
+  const top = [...rows].sort((a, b) => b.turnover - a.turnover).slice(0, 60);
+  $("heat").innerHTML = top.length ? top.map(r => {
+    const a = Math.min(1, Math.abs(r.chg24) / 10), col = r.chg24 >= 0 ? `rgba(34,211,154,${.12 + a * .65})` : `rgba(255,93,115,${.12 + a * .65})`;
+    return `<div class="tile" data-open="${esc(r.symbol)}" style="background:${col}" title="${esc(r.symbol)} • $${usd(r.turnover)}"><b>${esc(r.base)}</b><span>${pct(r.chg24, 1)}</span></div>`;
+  }).join("") : `<div class="empty">Tidak ada koin yang cocok</div>`;
+}
+const SORTABLE = {symbol: "Koin", price: "Harga", chg24: "24h", chg1h: "1h", turnover: "Volume 24h", range_pos: "Range 24h", rsi: "RSI", trend: "Trend", signal: "Sinyal", edge: "AI Edge", vol_ratio: "Vol×", funding: "Funding", oi: "OI"};
+function renderScanner() {
+  if (!SC || !document.getElementById("tab-market").classList.contains("on")) return;
+  const all = SC.rows, rows = all.filter(passes);
+  const val = r => sortKey === "symbol" ? r.symbol : sortKey === "edge" ? (r.profit_edge && r.profit_edge.edge) : r[sortKey];
+  rows.sort((a, b) => {
+    const x = val(a), y = val(b);
+    if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+    return (typeof x === "string" ? x.localeCompare(y) : x - y) * sortDir;
+  });
+  const analyzed = all.filter(r => r.signal).length;
+  $("scount").textContent = `${rows.length} dari ${all.length} koin • ${analyzed} dianalisis • update ${ago(SC.updated)} lalu`;
+  renderMovers(all); renderHeat(rows); renderProfitPicks();
+  const arrow = k => k === sortKey ? (sortDir < 0 ? " ▼" : " ▲") : "";
+  const head = ["", ...Object.entries(SORTABLE).map(([k, l]) => `<span data-sort="${k}">${l}${arrow(k)}</span>`), "24 jam", ""];
+  const body = rows.slice(0, scLimit).map(r => `<tr class="clk" data-open="${esc(r.symbol)}">
+    <td><button class="star ${favs.has(r.symbol) ? "on" : ""}" data-fav="${esc(r.symbol)}" title="Favorit">${favs.has(r.symbol) ? "★" : "☆"}</button></td>
+    <td><b>${esc(r.base)}</b>${r.in_bot ? ` <span class="badge">BOT</span>` : ""}</td><td>${px(r.price)}</td>
+    <td class="${sign(r.chg24)}">${pct(r.chg24)}</td><td class="${sign(r.chg1h)}">${pct(r.chg1h)}</td><td>$${usd(r.turnover)}</td>
+    <td><span class="rng"><i style="left:${r.range_pos ?? 50}%"></i></span></td>
+    <td class="${r.rsi > 70 ? "down" : r.rsi < 30 ? "up" : ""}">${r.rsi == null ? "–" : num(r.rsi, 1)}</td>
+    <td class="${r.trend === "UP" ? "up" : r.trend === "DOWN" ? "down" : "mut"}">${r.trend ?? "–"}</td>
+    <td>${r.signal ? `<span class="badge ${sigCls(r.signal)}">${r.signal}</span>` : `<span class="mut">…</span>`}</td>
+    <td class="${r.profit_edge && r.profit_edge.hot ? "up" : ""}">${r.profit_edge && r.profit_edge.edge != null ? `${r.profit_edge.edge} <span class="mut">${r.profit_edge.grade}</span>` : "–"}</td>
+    <td class="${r.vol_ratio >= 2 ? "up" : ""}">${r.vol_ratio == null ? "–" : num(r.vol_ratio, 1) + "x"}</td>
+    <td class="${sign(r.funding)}">${pct(r.funding, 4)}</td><td>$${usd(r.oi)}</td><td>${spark(r.spark)}</td>
+    <td><button class="btn sm" data-open="${esc(r.symbol)}">Grafik</button></td></tr>`);
+  $("scanner").innerHTML = rows.length
+    ? `<table><thead><tr>${head.map(h => `<th class="${h.includes("data-sort") ? "sortable" : ""}">${h}</th>`).join("")}</tr></thead><tbody>${body.join("")}</tbody></table>`
+    : `<div class="empty">Tidak ada koin yang cocok dengan filter</div>`;
+  $("more").style.display = rows.length > scLimit ? "inline-block" : "none";
+  $("more").textContent = `Tampilkan lebih banyak (${rows.length - scLimit} lagi)`;
+  $("cnt-market").textContent = all.length;
+}
+function fillSymbolList() {
+  const l = $("symlist"), syms = SC ? SC.rows.map(r => r.symbol) : [];
+  if (l.dataset.n === String(syms.length)) return;
+  l.dataset.n = String(syms.length);
+  l.innerHTML = syms.map(s => `<option value="${esc(s)}">`).join("");
+}
+function onSymSearch() {
+  const el = $("symsearch");
+  let v = el.value.trim().toUpperCase(); if (!v) return;
+  if (!v.includes("/")) v += "/USDT";
+  const known = new Set([...(SC ? SC.rows.map(r => r.symbol) : []), ...((D && D.symbols) || [])]);
+  if (known.has(v)) { selectSymbol(v); el.value = ""; el.blur(); }
+  else { el.classList.add("bad"); setTimeout(() => el.classList.remove("bad"), 900); }
+}
+
+/* ---------- History & performance ---------- */
+let histRows = [];
+function renderHistory() {
+  if (!D) return;
+  const sel = $("h-sym"), syms = [...new Set(D.trades.map(t => t.symbol))].sort(), key = syms.join();
+  if (sel.dataset.k !== key) {
+    const cur = sel.value; sel.dataset.k = key;
+    sel.innerHTML = `<option value="">Simbol: semua</option>` + syms.map(s => `<option>${esc(s)}</option>`).join(""); sel.value = cur;
+  }
+  const f = {s: sel.value, r: $("h-res").value, n: $("h-rsn").value};
+  histRows = D.trades.filter(t => (!f.s || t.symbol === f.s) && (!f.r || (f.r === "win" ? t.pnl > 0 : t.pnl <= 0)) && (!f.n || t.reason === f.n));
+  const hold = t => { const m = Math.round((t.closed_at - t.opened_at) / 60); return m < 90 ? m + "m" : Math.round(m / 60) + "j"; };
+  $("history").innerHTML = table(["Ditutup", "Simbol", "Sisi", "Entry", "Exit", "PnL", "Durasi", "Conf", "Alasan", "Mode"], histRows.map(t =>
+    `<tr><td class="mut">${new Date(t.closed_at * 1000).toLocaleString("id-ID", {day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"})}</td><td><b>${esc(t.symbol)}</b></td>
+     <td><span class="badge ${t.side === "LONG" ? "up" : "down"}">${esc(t.side)}</span></td><td>${px(t.entry)}</td><td>${px(t.exit)}</td>
+     <td class="${sign(t.pnl)}">${num(t.pnl)}</td><td>${hold(t)}</td><td>${esc(t.conf ?? "–")}</td><td>${esc(t.reason)}</td><td>${esc(t.mode)}</td></tr>`));
+}
+function renderPerf(d) {
+  const st = d.stats, rows = Object.entries(st.by_symbol || {}).sort((a, b) => b[1].pnl - a[1].pnl), max = Math.max(1, ...rows.map(([, v]) => Math.abs(v.pnl)));
+  $("perf").innerHTML = rows.length ? rows.map(([s, v]) => `<div class="row"><span class="l" style="width:90px">${esc(s.replace("/USDT", ""))}</span>
+    <span class="b" style="height:10px"><i style="${v.pnl >= 0 ? "left:50%" : `right:50%`};width:${Math.abs(v.pnl) / max * 50}%;background:${v.pnl >= 0 ? C.up : C.down}"></i></span>
+    <span class="x ${sign(v.pnl)}" style="width:150px">${v.pnl >= 0 ? "+" : ""}${num(v.pnl)} <span class="mut">${v.wins}/${v.trades}</span></span></div>`).join("") : `<div class="empty">Belum ada trade yang ditutup</div>`;
+  const payoff = st.avg_loss > 0 ? st.avg_win / st.avg_loss : null, exp = st.trades ? st.total_pnl / st.trades : null;
+  const cell = (l, v, c = "") => `<div class="stat"><div class="mut">${l}</div><div class="${c}"><b>${v}</b></div></div>`;
+  $("tstats").innerHTML = `<div class="stats">${cell("Total trade", st.trades)}${cell("Win rate", num(st.win_rate, 1) + "%")}${cell("Profit factor", num(st.profit_factor))}
+    ${cell("Rata-rata profit", "+" + num(st.avg_win), "up")}${cell("Rata-rata loss", "-" + num(st.avg_loss), "down")}${cell("Payoff ratio", payoff == null ? "–" : num(payoff))}
+    ${cell("Expectancy / trade", exp == null ? "–" : (exp >= 0 ? "+" : "") + num(exp), sign(exp))}${cell("Trade terbaik", "+" + num(st.best), "up")}${cell("Trade terburuk", num(st.worst), "down")}</div>`;
+}
+function exportCSV() {
+  const esc2 = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines = [["closed_at", "symbol", "side", "entry", "exit", "qty", "pnl", "reason", "mode", "conf"].join(",")]
+    .concat(histRows.map(t => [new Date(t.closed_at * 1000).toISOString(), t.symbol, t.side, t.entry, t.exit, t.qty, t.pnl, t.reason, t.mode, t.conf].map(esc2).join(",")));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lines.join("\n")], {type: "text/csv"}));
+  a.download = "trades.csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+function syncTabs() {
+  document.querySelectorAll("#symtabs button").forEach(b => b.classList.toggle("on", b.dataset.sym === mkSymbol));
+  document.querySelectorAll("#tftabs button").forEach(b => b.classList.toggle("on", b.dataset.tf === mkTf));
+}
+document.addEventListener("click", e => {
+  const t = e.target;
+  const fav = t.closest("[data-fav]"); if (fav) { toggleFav(fav.dataset.fav); return; }
+  const b = t.closest("button");
+  if (b) {
+    if (b.dataset.tab) return showTab(b.dataset.tab);
+    if (b.dataset.sym) return selectSymbol(b.dataset.sym);
+    if (b.dataset.tf) { mkTf = b.dataset.tf; syncTabs(); loadMarket(true); return; }
+    if (b.dataset.opt) { mkState.opts[b.dataset.opt] = !mkState.opts[b.dataset.opt]; b.classList.toggle("on", mkState.opts[b.dataset.opt]); applyVisibility(); legendLast(); return; }
+    if (b.dataset.ftoggle) { F[b.dataset.ftoggle] = !F[b.dataset.ftoggle]; syncFilterUI(); filtersChanged(); return; }
+    if (b.dataset.preset) { Object.assign(F, FDEF, PRESETS[b.dataset.preset]); syncFilterUI(); filtersChanged(); return; }
+    if (b.id === "f-reset") { Object.assign(F, FDEF); syncFilterUI(); filtersChanged(); return; }
+    if (b.id === "more") { scLimit += 50; renderScanner(); return; }
+    if (b.id === "h-csv") { exportCSV(); return; }
+  }
+  const th = t.closest("[data-sort]");
+  if (th) { const k = th.dataset.sort; sortDir = sortKey === k ? -sortDir : (k === "symbol" ? 1 : -1); sortKey = k; renderScanner(); return; }
+  const open = t.closest("[data-open]"); if (open) selectSymbol(open.dataset.open, true);
+});
+
+function render(d) {
+  D = d;
+  if (!d || !d.mode) return;
+  const m = $("mode"); m.textContent = d.mode; m.className = "pill " + d.mode.toLowerCase();
+  $("lev").textContent = d.leverage + "x Cross";
+  $("uptime").textContent = "⏱ " + dur(d.uptime);
+  $("halt").style.display = d.halted ? "block" : "none";
+  $("equity").textContent = "$" + num(d.equity);
+  $("balance").textContent = "Saldo: $" + num(d.balance) + " • Peak $" + num(d.peak);
+  const st = d.stats;
+  $("pnl").textContent = (st.total_pnl >= 0 ? "+" : "") + num(st.total_pnl); $("pnl").className = "v " + sign(st.total_pnl);
+  $("trades").textContent = st.trades + " trade ditutup";
+  $("dd").textContent = num(d.drawdown) + "%"; $("ddmax").textContent = d.max_drawdown;
+  $("ddbar").style.width = Math.min(100, d.drawdown / d.max_drawdown * 100) + "%";
+  $("risk").textContent = num(d.total_risk) + "%"; $("riskmax").textContent = d.max_total_risk;
+  $("riskbar").style.width = Math.min(100, d.total_risk / d.max_total_risk * 100) + "%";
+  $("wr").textContent = num(st.win_rate, 1) + "%"; $("pf").textContent = "Profit factor " + num(st.profit_factor);
+  $("wstxt").textContent = d.ws.connected ? "WS online" : (d.ws.gave_up ? "WS mati" : "WS reconnect");
+  $("wsdot").className = "dot" + (d.ws.connected ? " on" : "");
+  renderEquity(d.equity_curve);
+  if (!mk && d.symbols && d.symbols.length) { mkSymbol = d.symbols[0]; initMarket(); buildMarketTabs(); loadMarket(true); }
+
+  $("positions").innerHTML = table(["Simbol", "Sisi", "Entry", "Harga", "SL", "TP", "Qty", "uPnL", "Conf", "Mode"], d.positions.map(p =>
+    `<tr><td><b>${esc(p.symbol)}</b></td><td><span class="badge ${p.side === "LONG" ? "up" : "down"}">${esc(p.side)}</span></td><td>${px(p.entry)}</td><td>${px(p.price)}</td>
+     <td class="down">${px(p.sl)}</td><td class="up">${px(p.tp)}</td><td>${esc(p.qty)}</td><td class="${sign(p.upnl)}">${num(p.upnl)} (${num(p.upnl_pct, 1)}%)</td><td>${esc(p.conf)}</td><td>${esc(p.mode)}</td></tr>`));
+
+  const regCls = r => r === "TRENDING_UP" ? "up" : r === "TRENDING_DOWN" ? "down" : r === "VOLATILE" ? "warn" : "";
+  $("analysis").innerHTML = table(["Simbol", "Regime", "Trend", "RSI", "Trap", "SM", "AI", "Edge", "E[R]", "Keputusan"], Object.entries(d.analysis).map(([s, a]) => {
+    const dec = a.decision;
+    return `<tr><td><b>${esc(s)}</b></td><td><span class="badge ${regCls(a.regime)}">${esc(a.regime)}</span></td><td class="${a.ema_trend === "UP" ? "up" : "down"}">${esc(a.ema_trend)}</td>
+    <td>${num(a.rsi, 1)}</td><td class="${a.trap >= 2 ? "down" : ""}">${a.trap}/6${a.trap_bias ? " " + esc(a.trap_bias) : ""}</td><td class="${sign(a.sm)}">${num(a.sm)}</td>
+    <td>${a.ai_dir ? `<span class="badge ${a.ai_dir === "LONG" ? "up" : "down"}">${esc(a.ai_dir)}</span> ${num((a.ai_conf || 0) * 100, 0)}%` : "–"}</td>
+    <td class="${a.profit_edge >= 55 ? "up" : ""}"><b>${a.profit_edge ?? "–"}</b> <span class="mut">${esc(a.edge_grade || "")}</span></td>
+    <td class="${sign(a.expected_r)}">${num(a.expected_r)}</td>
+    <td>${dec ? `${esc(dec.action)} • ${dec.conf} • ${esc(dec.status)} <span class="mut">${ago(dec.ts)}</span>` : "–"}</td></tr>`;
+  }));
+
+  $("events").innerHTML = d.events.length ? d.events.map(e => `<div><span class="mut">${ago(e.ts)}</span> ${esc(e.text)}</div>`).join("") : `<div class="empty">Belum ada aktivitas</div>`;
+  renderHistory(); renderPerf(d);
+  $("rl").innerHTML = `RL: ε=${d.rl.epsilon} • ${d.rl.updates} update • ${d.rl.states_visited}/${d.rl.total_states} state`;
+  tickNext();
+}
+
+function tickNext() {
+  if (!D || !D.next_slow) { $("next").textContent = "slow loop –"; return; }
+  const left = Math.max(0, Math.round(D.next_slow - Date.now() / 1000));
+  $("next").textContent = "slow loop " + Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0");
+}
+
+function renderPrices(ps) {
+  const box = $("ticks"), syms = (D && D.symbols) || Object.keys(ps.prices);
+  box.innerHTML = syms.map(s => {
+    const p = ps.prices[s]; const a = D && D.analysis[s];
+    return `<div class="tick" data-s="${esc(s)}"><div class="n">${esc(s)} ${a ? `<span class="badge ${a.ema_trend === "UP" ? "up" : "down"}">${esc(a.ema_trend)}</span>` : ""}</div>
+    <div class="p">${p ? px(p.price) : "–"}</div></div>`;
+  }).join("");
+  syms.forEach(s => {
+    const p = ps.prices[s]; if (!p) return;
+    const el = box.querySelector(`[data-s="${CSS.escape(s)}"]`), prev = lastPrices[s];
+    if (prev != null && p.price !== prev) { el.classList.add(p.price > prev ? "fu" : "fd"); setTimeout(() => el.classList.remove("fu", "fd"), 600); }
+    lastPrices[s] = p.price;
+    if (s === mkSymbol) liveTick(p.price);
+  });
+}
+
+function renderStatic(strat, sm, bt) {
+  if (strat) {
+    const w = strat.weights, max = Math.max(...Object.values(w));
+    $("weights").innerHTML = Object.entries(w).map(([k, v]) =>
+      `<div class="row"><span class="l">${esc(k)}</span><span class="b"><i style="left:0;width:${v / max * 100}%"></i></span><span class="x">${Math.round(v * 100)}%</span></div>`).join("")
+      + `<div class="mut" style="font-size:12px">Min. bobot menang ${Math.round(strat.min_vote_weight * 100)}% • Min. confidence ${strat.min_confidence} • Min. profit edge ${strat.min_profit_edge ?? 55}</div>`;
+  }
+  if (sm) {
+    const meter = (l, v) => `<div class="row"><span class="l">${l}</span><span class="b"><i style="left:${v < 0 ? 50 + v * 50 : 50}%;width:${Math.abs(v) * 50}%;background:${v < 0 ? "var(--down)" : "var(--up)"}"></i></span><span class="x">${num(v)}</span></div>`;
+    const m = sm.market;
+    $("sm").innerHTML = meter("Whale inflow", m.whale) + meter("Likuidasi", m.liquidation)
+      + (m.whale_ok || m.liq_ok ? "" : `<div class="mut" style="font-size:12px;margin:6px 0">API CryptoQuant/Coinglass belum diset → netral</div>`)
+      + Object.entries(sm.symbols).map(([s, v]) => meter(esc(s), v.total)).join("");
+  }
+  if (bt && bt.summary) {
+    const s = bt.summary;
+    $("bt").innerHTML = `<div style="margin-bottom:8px"><span class="badge ${s.viable ? "up" : "down"}">${s.viable ? "VIABLE" : "TIDAK VIABLE"}</span>
+      <span class="mut"> ${s.trades} trade • WR ${num(s.win_rate, 1)}% • PF ${num(s.profit_factor)}</span></div>`
+      + table(["Simbol", "Trade", "WR", "PnL%", "Sharpe", "MaxDD"], Object.entries(bt.symbols).map(([k, r]) =>
+        `<tr><td><b>${esc(k)}</b></td><td>${r.trades}</td><td>${num(r.win_rate, 1)}%</td><td class="${sign(r.pnl_pct)}">${num(r.pnl_pct)}</td><td>${num(r.sharpe)}</td><td>${num(r.max_dd_pct, 1)}%</td></tr>`));
+  }
+}
+
+const safe = (u, f) => getJSON(u).then(f).catch(() => {});
+const loadMain = () => safe("/api", render);
+const loadPrices = () => safe("/price-stream", renderPrices);
+const loadStatic = () => Promise.all([getJSON("/strategies").catch(() => null), getJSON("/smart-money").catch(() => null), getJSON("/backtest").catch(() => null)])
+  .then(([a, b, c]) => renderStatic(a, b, c));
+const loadScanner = () => safe("/scanner", s => { SC = s; fillSymbolList(); renderScanner(); $("cnt-market").textContent = s.rows.length; });
+initEquity(); bindFilters();
+$("symsearch").addEventListener("change", onSymSearch);
+["h-sym", "h-res", "h-rsn"].forEach(id => $(id).addEventListener("change", renderHistory));
+showTab(store.get("tab", "overview"));
+loadMain().then(() => { loadPrices(); loadStatic(); });
+loadScanner();
+setInterval(loadMain, 10000); setInterval(loadPrices, 2000); setInterval(loadStatic, 60000); setInterval(tickNext, 1000);
+setInterval(() => loadMarket(false), 10000); setInterval(loadScanner, 15000);
+</script>
+</body>
+</html>
